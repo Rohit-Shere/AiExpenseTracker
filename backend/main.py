@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from backend.chatbot import get_chatbot_response
 from fastapi.responses import StreamingResponse
 from io import BytesIO
+from fastapi.middleware.cors import CORSMiddleware
 import os
 
 
