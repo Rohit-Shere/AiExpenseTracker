@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from backend.chatbot import get_chatbot_response
 from fastapi.responses import StreamingResponse
 from io import BytesIO
+from pydantic import BaseModel
+from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
@@ -55,10 +57,18 @@ async def welcome():
 
 
 # Define an endpoint for chatbot interaction
+class ChatbotRequest(BaseModel):
+    user_input: str
+# Update your endpoint
 @app.post("/chatbot/{user_id}")
-async def chatbot_interaction(user_id: str, user_input: str):
-    response = get_chatbot_response(user_id, user_input)
-    return {"response": response}
+async def chatbot_interaction(user_id: str, request: ChatbotRequest):
+    response = get_chatbot_response(user_id, request.user_input)
+    return {"response":response}
+
+# @app.post("/chatbot/{user_id}")
+# async def chatbot_interaction(user_id: str, user_input: str):
+#     response = get_chatbot_response(user_id, user_input)
+#     return {"response": response}
 
 # fetch memory for user_id
 @app.get("/memory/{user_id}")
