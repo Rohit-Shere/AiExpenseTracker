@@ -7,6 +7,41 @@ import os
 
 app = FastAPI(title="Personal Finance Chatbot API")
 
+# List of allowed origins
+origins = [
+    # Your Vercel frontend
+    "https://expence-tracker1-zeta.vercel.app",
+    "https://expence-tracker1.vercel.app",
+    
+    # Development origins
+    "http://localhost:8000",
+    "http://localhost:3000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:3000",
+    
+    # For testing - you can remove this in production
+    "*",  # Allows all origins (for testing only)
+]
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # List of allowed origins
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Allowed HTTP methods
+    allow_headers=["*"],  # Allowed headers
+)
+
+# Add this to your main.py
+@app.get("/test-cors")
+async def test_cors():
+    
+    return {
+        "message": "CORS test successful!",
+        "cors_enabled": True,
+        "allowed_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "note": "This endpoint should be accessible from your Vercel frontend"}
+
 # ==============================
 # Chatbot Endpoints
 # ==============================
