@@ -15,6 +15,7 @@ def create_table():
 
     q1 = """CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
         date TEXT NOT NULL,
         category TEXT NOT NULL,
         amount REAL NOT NULL,
@@ -27,26 +28,26 @@ def create_table():
 
 # Insert expense
 @tool
-def insert_expense(date, category, amount, description):
+def insert_expense(user_id, date, category, amount, description):
     """Insert a new expense into the expenses table."""
     conn = get_connection()
     cursor = conn.cursor()
 
     create_table()
-    q2 = """INSERT INTO expenses (date, category, amount, description)
-            VALUES (?, ?, ?, ?);"""
+    q2 = """INSERT INTO expenses (user_id, date, category, amount, description)
+            VALUES (?, ?, ?, ?, ?);"""
 
     cursor.execute(q2, (date, category, amount, description))
     conn.commit()
     conn.close()
 
 # Fetch all expenses
-def fetch_expense():
+def fetch_expense(user_id):
     """Fetch all expenses."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM expenses;")
+    cursor.execute("SELECT * FROM expenses WHERE user_id=?;",(user_id,))
     rows = cursor.fetchall()
 
     conn.close()
@@ -54,12 +55,12 @@ def fetch_expense():
 
 
 @tool
-def fetch_expenses():
+def fetch_expenses(user_id):
     """Fetch all expenses."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM expenses;")
+    cursor.execute("SELECT * FROM expenses WHERE user_id=?;",(user_id,))
     rows = cursor.fetchall()
 
     conn.close()
@@ -67,14 +68,14 @@ def fetch_expenses():
 
 # Fetch expenses by category
 @tool
-def fetch_expenses_by_category(category):
+def fetch_expenses_by_category(user_id, category):
     """Fetch expenses by category.
     param category: Category of expenses to fetch"""
     
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM expenses WHERE category = ?;", (category,))
+    cursor.execute("SELECT * FROM expenses WHERE user_id=? AND category = ?;", (user_id, category))
     rows = cursor.fetchall()
 
     conn.close()
@@ -82,7 +83,7 @@ def fetch_expenses_by_category(category):
 
 # Fetch total expenses between dates 
 @tool
-def fetch_total_expenses_between_dates(start_date, end_date):
+def fetch_total_expenses_between_dates(user_id, start_date, end_date):
     """Fetch total expenses between two dates.
     param start_date: Start date in YYYY-MM-DD format
     param end_date: End date in YYYY-MM-DD format"""
@@ -91,8 +92,8 @@ def fetch_total_expenses_between_dates(start_date, end_date):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT SUM(amount) FROM expenses WHERE date BETWEEN ? AND ?;",
-        (start_date, end_date)
+        "SELECT SUM(amount) FROM expenses WHERE user_id=? AND date BETWEEN ? AND ?;",
+        (user_id, start_date, end_date)
     )
     result = cursor.fetchone()
 
@@ -101,7 +102,7 @@ def fetch_total_expenses_between_dates(start_date, end_date):
 
 # Fetch expenses between dates 
 @tool
-def fetch_expenses_between_dates(start_date, end_date):
+def fetch_expenses_between_dates(user_id,start_date, end_date):
     """Fetch expenses between two dates.
     param start_date: Start date in YYYY-MM-DD format
     param end_date: End date in YYYY-MM-DD format"""
@@ -110,18 +111,30 @@ def fetch_expenses_between_dates(start_date, end_date):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM expenses WHERE date BETWEEN ? AND ?;",
-        (start_date, end_date)
+        "SELECT * FROM expenses WHERE user_id=? AND date BETWEEN ? AND ?;",
+        (user_id, start_date, end_date)
     )
     rows = cursor.fetchall()
 
     conn.close()
     return rows
 
+# Fetch highest expense - Optional Enhancement
+@tool
+def fetch_highest_expense_day(user_id):
+    """Fetch the highest expense recorded."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT date,Sum(amount) FROM expenses WHERE id=? GROUP BY date ORDER BY amount DESC LIMIT 1;",(user_id,))
+    row = cursor.fetchone()
+
+    conn.close()
+    return row
 
 # Edit expense - Optional Enhancement
 @tool
-def edit_expense(id, amount=None, category=None, description=None):
+def edit_expense(user_id, amount=None, category=None, description=None):
     """Edit an existing expense.
     param id: ID of the expense to edit
     param amount: New amount (optional)
@@ -134,14 +147,14 @@ def edit_expense(id, amount=None, category=None, description=None):
     cur.execute("""
         UPDATE expenses 
         SET amount=?, category=?, description=? 
-        WHERE id=?
+        WHERE user_id=? 
     """, (amount, category, description, id))
     conn.commit()
     conn.close()
     
 # Delete expense - Optional Enhancement
 @tool
-def delete_expense(id,date:None):
+def delete_expense(user_id,date:None):
     """Delete an expense by ID.
     param id: ID of the expense to delete
     param date: Date of the expense to delete (optional)
@@ -149,11 +162,30 @@ def delete_expense(id,date:None):
     conn = get_connection()
     cursor = conn.cursor()
     if date:
-        cursor.execute("DELETE FROM expenses WHERE id=? AND date=? ;", (id,date))
+        cursor.execute("DELETE FROM expenses WHERE user_id=? AND date=? ;", (user_id,date))
     else:
-        cursor.execute("DELETE FROM expenses WHERE id=? ;", (id,))
+        cursor.execute("DELETE FROM expenses WHERE user_id=? ;", (user_id,))
     conn.commit()
     conn.close()
+    
+#   ===============================================
+#   Fuctions to retrive the data for visualizations
+#   ===============================================
+
+# Fetch daily spending data
+def fetch_daily_spending(user_id):
+    """Fetch daily spending data."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT date, SUM(amount) as total_amount FROM expenses WHERE id=? GROUP BY date ORDER BY date;",(user_id,))
+    rows = cursor.fetchall()
+
+    conn.close()
+    return rows
+
+
+
 
 
 if __name__ == "expense":
