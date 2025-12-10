@@ -55,7 +55,7 @@ def get_chatbot_response(user_id, user_input):
 You are an Expense Manager AI Agent.
 
 Today's date (IST): {today_ist}
-
+user_id: {user_id}
 Rules:
 1. When adding an expense:
    - If the user gives no date OR says "today", ALWAYS use {today_ist}.

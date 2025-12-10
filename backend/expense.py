@@ -37,7 +37,7 @@ def insert_expense(user_id, date, category, amount, description):
     q2 = """INSERT INTO expenses (user_id, date, category, amount, description)
             VALUES (?, ?, ?, ?, ?);"""
 
-    cursor.execute(q2, (date, category, amount, description))
+    cursor.execute(q2, (user_id, date, category, amount, description))
     conn.commit()
     conn.close()
 
@@ -188,7 +188,7 @@ def fetch_daily_spending(user_id):
 
 
 
-if __name__ == "expense":
+if __name__ == "__main__":
     create_table()
     
     
