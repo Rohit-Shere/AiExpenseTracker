@@ -70,13 +70,18 @@ async def get_memory(user_id: str):
 
 
 # fetch all expenses
+# fetch all expenses - FIXED VERSION
 @app.get("/expenses")
-async def get_all_expenses(user_id: str = None):  # Make it optional with default
+async def get_all_expenses(user_id: str = Query(None, description="User ID")):
     from backend.expense import fetch_expense
     if not user_id:
-        return {"expenses": [], "error": "user_id required"}
-    expenses = fetch_expense(user_id)
-    return {"expenses":expenses}
+        return {"expenses": [], "error": "user_id parameter is required"}
+    
+    try:
+        expenses = fetch_expense(user_id)
+        return {"expenses": expenses, "user_id": user_id, "count": len(expenses)}
+    except Exception as e:
+        return {"expenses": [], "error": str(e)}
 
 # ==============================
 # Visualization Endpoints
@@ -98,7 +103,7 @@ async def get_all_expenses(user_id: str = None):  # Make it optional with defaul
 #     return img
 
 @app.get("/visuals/daily_spending/{user_id}")
-async def get_daily_spending_visual(user_id: int):
+async def get_daily_spending_visual(user_id: str):
     from backend.expense import fetch_daily_spending
     from backend.visuals import plot_daily_spending
 
