@@ -15,7 +15,7 @@ def create_table():
 
     q1 = """CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
+        user_id text NOT NULL,
         date TEXT NOT NULL,
         category TEXT NOT NULL,
         amount REAL NOT NULL,
@@ -148,7 +148,7 @@ def edit_expense(user_id, amount=None, category=None, description=None):
         UPDATE expenses 
         SET amount=?, category=?, description=? 
         WHERE user_id=? 
-    """, (amount, category, description, id))
+    """, ( amount, category, description, user_id))
     conn.commit()
     conn.close()
     

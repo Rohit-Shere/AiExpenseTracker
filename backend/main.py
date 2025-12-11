@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from backend.chatbot import get_chatbot_response
 from fastapi.responses import StreamingResponse
 from io import BytesIO
@@ -35,15 +35,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allowed headers
 )
 
-# Add this to your main.py
-@app.get("/test-cors")
-async def test_cors():
-    
-    return {
-        "message": "CORS test successful!",
-        "cors_enabled": True,
-        "allowed_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "note": "This endpoint should be accessible from your Vercel frontend"}
 
 # ==============================
 # Chatbot Endpoints
@@ -77,12 +68,15 @@ async def get_memory(user_id: str):
     memories = fetch_memories_by_user(user_id)
     return {"memories": memories}
 
+
 # fetch all expenses
 @app.get("/expenses")
-async def get_all_expenses(user_id:str):
+async def get_all_expenses(user_id: str = None):  # Make it optional with default
     from backend.expense import fetch_expense
+    if not user_id:
+        return {"expenses": [], "error": "user_id required"}
     expenses = fetch_expense(user_id)
-    return {"expenses": expenses}
+    return {"expenses":expenses}
 
 # ==============================
 # Visualization Endpoints
