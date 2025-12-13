@@ -1,7 +1,9 @@
 import sqlite3
 
-conn = sqlite3.connect('database/memory.db')
-cursor = conn.cursor()
+def get_connection():
+    conn = sqlite3.connect('database/memory.db')
+    cursor = conn.cursor()
+    return conn, cursor
 
 def create_memory_table():
     """Create the memory table in the database if it doesn't exist."""
@@ -14,8 +16,10 @@ def create_memory_table():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         ); """
     
+    conn, cursor = get_connection()
     cursor.execute(q1)
     conn.commit() 
+    conn.close()
     
 
 def insert_memory(user_id, role, memory_text):
@@ -25,8 +29,12 @@ def insert_memory(user_id, role, memory_text):
     create_memory_table()
     q2 = """ INSERT INTO memory (user_id, role, memory_text)
              VALUES (?, ?, ?); """
+             
+    conn, cursor = get_connection()
+
     cursor.execute(q2, (user_id, role, memory_text))
     conn.commit()
+    conn.close()
     
 
 
@@ -36,9 +44,11 @@ def fetch_memories_by_user(user_id):
     """
     
     q3 = "SELECT * FROM memory WHERE user_id = ?;"
+    conn, cursor = get_connection()
     cursor.execute(q3, (user_id,))
-    
-    return cursor.fetchall()
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
 
 def clear_memories_by_user(user_id):
@@ -47,9 +57,10 @@ def clear_memories_by_user(user_id):
     """
     
     q4 = "DELETE FROM memory WHERE user_id = ?;"
+    conn, cursor = get_connection()
     cursor.execute(q4, (user_id,))
     conn.commit()
-    
+    conn.close()
 
 if __name__ == "__main__":
     create_memory_table()
