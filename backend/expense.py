@@ -144,7 +144,7 @@ def edit_expense(user_id, amount=None, category=None, description=None):
     
     conn = get_connection()
     cursor = conn.cursor()
-    cur.execute("""
+    cursor.execute("""
         UPDATE expenses 
         SET amount=?, category=?, description=? 
         WHERE user_id=? 
@@ -173,14 +173,80 @@ def delete_expense(user_id,date:None):
 #   ===============================================
 
 # Fetch daily spending data
-def fetch_daily_spending(user_id):
+def fetch_daily_spending(user_id, start_date=None, end_date=None):
     """Fetch daily spending data."""
     conn = get_connection()
     cursor = conn.cursor()
-
-    cursor.execute("SELECT date, SUM(amount) as total_amount FROM expenses WHERE id=? GROUP BY date ORDER BY date;",(user_id,))
+    
+    if start_date and end_date:
+        cursor.execute(
+            "SELECT date, SUM(amount) as total_amount FROM expenses WHERE user_id=? AND date BETWEEN ? AND ? GROUP BY date ORDER BY date;",
+            (user_id, start_date, end_date)
+        )
+    else:
+        cursor.execute(
+            "SELECT date, SUM(amount) as total_amount FROM expenses WHERE user_id=? GROUP BY date ORDER BY date;",
+            (user_id,)
+        )
     rows = cursor.fetchall()
 
+    conn.close()
+    return rows
+
+# Fetch latest expense
+def fetch_latest_expense(user_id):
+    """Fetch the latest expense."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "SELECT * FROM expenses WHERE user_id=? ORDER BY date DESC, id DESC LIMIT 1;",
+        (user_id,)
+    )
+    row = cursor.fetchone()
+    
+    conn.close()
+    return row
+
+# Fetch expenses by category summary
+def fetch_category_summary(user_id, start_date=None, end_date=None):
+    """Fetch expenses grouped by category."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    if start_date and end_date:
+        cursor.execute(
+            "SELECT category, SUM(amount) as total, COUNT(*) as count FROM expenses WHERE user_id=? AND date BETWEEN ? AND ? GROUP BY category ORDER BY total DESC;",
+            (user_id, start_date, end_date)
+        )
+    else:
+        cursor.execute(
+            "SELECT category, SUM(amount) as total, COUNT(*) as count FROM expenses WHERE user_id=? GROUP BY category ORDER BY total DESC;",
+            (user_id,)
+        )
+    rows = cursor.fetchall()
+    
+    conn.close()
+    return rows
+
+# Fetch monthly spending
+def fetch_monthly_spending(user_id, start_date=None, end_date=None):
+    """Fetch monthly spending data."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    if start_date and end_date:
+        cursor.execute(
+            "SELECT strftime('%Y-%m', date) as month, SUM(amount) as total_amount FROM expenses WHERE user_id=? AND date BETWEEN ? AND ? GROUP BY month ORDER BY month;",
+            (user_id, start_date, end_date)
+        )
+    else:
+        cursor.execute(
+            "SELECT strftime('%Y-%m', date) as month, SUM(amount) as total_amount FROM expenses WHERE user_id=? GROUP BY month ORDER BY month;",
+            (user_id,)
+        )
+    rows = cursor.fetchall()
+    
     conn.close()
     return rows
 
