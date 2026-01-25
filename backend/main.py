@@ -56,10 +56,11 @@ async def welcome():
 
 # Define an endpoint for chatbot interaction
 class ChatbotRequest(BaseModel):
+
     user_input: str
 # Update your endpoint
 @app.post("/ai/chat")
-async def chatbot_interaction(user_id: str, request: ChatbotRequest):
+async def chatbot_interaction(user_id:str, request: ChatbotRequest):
     try:
         response = get_chatbot_response(user_id, request.user_input)
         return {"response": response}

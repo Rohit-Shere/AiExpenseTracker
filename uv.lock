@@ -146,6 +146,18 @@ wheels = [
 ]
 
 [[package]]
+name = "appwrite"
+version = "14.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3a/ff/45f6caa31151f647c8fe715e059dacfa96297c71d86087ebc808864b139a/appwrite-14.1.0.tar.gz", hash = "sha256:c4cbd49083a08c6a24d8f4279492361f041afc5a89d2b2c770c488cbec314ec2", size = 74445, upload-time = "2025-12-18T08:21:17.346Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/db/6a0cf974ba2ee329259b2e4b881e1748f163f7a6a728942f09948ffd4df6/appwrite-14.1.0-py3-none-any.whl", hash = "sha256:e200a8e3b80a57acb38a7111dea08d92cd06b80312ce9b76ed8388027cdb089d", size = 92800, upload-time = "2025-12-18T08:21:15.988Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "25.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1488,6 +1500,7 @@ name = "personal-finance"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "appwrite" },
     { name = "dotenv" },
     { name = "fastapi" },
     { name = "langchain" },
@@ -1506,6 +1519,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "appwrite", specifier = ">=14.1.0" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", specifier = ">=0.124.0" },
     { name = "langchain", specifier = ">=1.1.2" },
