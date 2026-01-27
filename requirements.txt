@@ -13,7 +13,7 @@ python-jose>=3.5.0
 python-multipart>=0.0.21
 seaborn>=0.13.2
 uvicorn>=0.38.0
-psycopg2[binary]==3.2.6
+psycopg2[binary]>=3.2.6
 
 
 
