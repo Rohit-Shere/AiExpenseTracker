@@ -1,13 +1,18 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import create_agent
 from backend.memory import insert_memory, fetch_memories_by_user, clear_memories_by_user
-from backend.expense import (
+from backend.expense_tools import (
     insert_expense,
-    fetch_expenses,
-    fetch_expenses_by_category,
-    fetch_total_expenses_between_dates,
-    fetch_expenses_between_dates
+    fetch_expenses_tool,
+    fetch_latest_expense_tool,
+    fetch_expenses_between_dates_tool,
+    update_expense_tool,
+    delete_expense_tool,
+    fetch_category_summary_tool,
+    fetch_daily_spending_tool,
+    fetch_monthly_spending_tool
 )
+from backend.adviceAgent import analyze_finances_tool
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -35,10 +40,15 @@ llm = ChatGoogleGenerativeAI(
 # Tools
 tools = [
     insert_expense,
-    fetch_expenses,
-    fetch_expenses_by_category,
-    fetch_total_expenses_between_dates,
-    fetch_expenses_between_dates
+    fetch_expenses_tool,
+    fetch_latest_expense_tool,
+    fetch_expenses_between_dates_tool,
+    update_expense_tool,
+    delete_expense_tool,
+    fetch_category_summary_tool,
+    fetch_daily_spending_tool,
+    fetch_monthly_spending_tool,
+    
 ]
 
 # Create agent

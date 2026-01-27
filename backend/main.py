@@ -1,153 +1,119 @@
 from fastapi import FastAPI, Query
-from backend.chatbot import get_chatbot_response
-from fastapi.responses import StreamingResponse
-from io import BytesIO
-from fastapi import Depends
-from pydantic import BaseModel
-from backend.auth import get_current_user
-from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
-from backend.auth import router as auth_router
-import os
+from pydantic import BaseModel
+from typing import Optional
 
+# ==============================
+# App Init
+# ==============================
+app = FastAPI(title="AI Expense Tracker – Demo Mode")
 
-app = FastAPI(title="Personal Finance Chatbot API")
-
-# List of allowed origins
-origins = [
-    # Your Vercel frontend
-    "https://expence-tracker1-zeta.vercel.app",
-    "https://expence-tracker1.vercel.app",
-    
-    # Development origins
-    "http://localhost:8000",
-    "http://localhost:3000",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:3000",
-    
-    # For testing - you can remove this in production
-    "*",  # Allows all origins (for testing only)
-]
-
-# Add CORS middleware
+# ==============================
+# CORS
+# ==============================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # List of allowed origins
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Allowed HTTP methods
-    allow_headers=["*"],  # Allowed headers
+    allow_origins=["*"],  # demo only
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-# -- Routes --
-# ==============================
-app.include_router(auth_router)
-
 
 # ==============================
-# Chatbot Endpoints
+# WELCOME
 # ==============================
-
-
-# well come endpoint
 @app.get("/")
 async def welcome():
-    return {"message": "Welcome to the Personal Finance Chatbot API!"}
+    return {"message": "AI Expense Tracker Backend (DEMO MODE)"}
 
 
-
-# Define an endpoint for chatbot interaction
+# ==============================
+# CHATBOT
+# ==============================
 class ChatbotRequest(BaseModel):
-
+    user_id: str
     user_input: str
-# Update your endpoint
+
 @app.post("/ai/chat")
-async def chatbot_interaction(user_id:str, request: ChatbotRequest):
-    try:
-        response = get_chatbot_response(user_id, request.user_input)
-        return {"response": response}
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return {"response": f"Sorry, I encountered an error: {str(e)}"}
+async def chatbot_interaction(request: ChatbotRequest):
+    from backend.chatbot import get_chatbot_response
 
-# @app.post("/chatbot/{user_id}")
-# async def chatbot_interaction(user_id: str, user_input: str):
-#     response = get_chatbot_response(user_id, user_input)
-#     return {"response": response}
+    response = get_chatbot_response(
+        request.user_id,
+        request.user_input
+    )
+    return {"response": response}
 
-# fetch memory for user_id
-@app.get("/memory/{user_id}")
+
+# ==============================
+# MEMORY
+# ==============================
+@app.get("/memory")
 async def get_memory(user_id: str):
     from backend.memory import fetch_memories_by_user
+
     memories = fetch_memories_by_user(user_id)
     return {"memories": memories}
 
 
-# fetch all expenses
-# fetch all expenses - FIXED VERSION
+# ==============================
+# EXPENSE MODELS
+# ==============================
+class ExpenseCreate(BaseModel):
+    user_id: str
+    date: str
+    category: str
+    amount: float
+    description: Optional[str] = None
+
+
+# ==============================
+# GET ALL EXPENSES
+# ==============================
 @app.get("/expenses")
 async def get_all_expenses(
+    user_id: str = Query(...),
     start_date: str = Query(None),
-    end_date: str = Query(None),
-    current_user: dict = Depends(get_current_user)
+    end_date: str = Query(None)
 ):
     from backend.expense import fetch_expense, fetch_expenses_between_dates
 
-    user_id = current_user["id"]  # 🔐 from JWT
+    if start_date and end_date:
+        expenses = fetch_expenses_between_dates(user_id, start_date, end_date)
+    else:
+        expenses = fetch_expense(user_id)
 
-    try:
-        if start_date and end_date:
-            expenses = fetch_expenses_between_dates(user_id, start_date, end_date)
-        else:
-            expenses = fetch_expense(user_id)
+    expense_list = [
+        {
+            "id": e[0],
+            "date": e[2],
+            "category": e[3],
+            "amount": e[4],
+            "description": e[5] if len(e) > 5 else None
+        }
+        for e in expenses
+    ]
 
-        expense_list = []
-        for exp in expenses:
-            expense_list.append({
-                "id": exp[0],
-                "date": exp[2],
-                "category": exp[3],
-                "amount": exp[4],
-                "description": exp[5] if len(exp) > 5 else None
-            })
+    return {"expenses": expense_list, "count": len(expense_list)}
 
-        return {"expenses": expense_list, "count": len(expense_list)}
 
-    except Exception as e:
-        return {"expenses": [], "error": str(e)}
+# ==============================
+# ADD EXPENSE
+# ==============================
+@app.post("/expenses")
+async def add_expense(data: ExpenseCreate):
+    from backend.expense import insert_expense
 
-    from backend.expense import fetch_expense, fetch_expenses_between_dates
-    if not user_id:
-        return {"expenses": [], "error": "user_id parameter is required"}
-    
-    try:
-        if start_date and end_date:
-            expenses = fetch_expenses_between_dates(user_id, start_date, end_date)
-        else:
-            expenses = fetch_expense(user_id)
-        
-        # Convert to list of dicts for JSON serialization
-        expense_list = []
-        for exp in expenses:
-            expense_list.append({
-                "id": exp[0],
-                "user_id": exp[1],
-                "date": exp[2],
-                "category": exp[3],
-                "amount": exp[4],
-                "description": exp[5] if len(exp) > 5 else None
-            })
-        return {"expenses": expense_list, "user_id": user_id, "count": len(expense_list)}
-    except Exception as e:
-        return {"expenses": [], "error": str(e)}
+    insert_expense(data.user_id, data)
+    return {"message": "Expense added successfully"}
 
-# Get latest expense
+
+# ==============================
+# LATEST EXPENSE
+# ==============================
 @app.get("/expenses/latest")
-async def get_latest_expense(
-    current_user: dict = Depends(get_current_user)
-    ):
+async def get_latest_expense(user_id: str):
     from backend.expense import fetch_latest_expense
-
-    user_id = current_user["id"]
 
     expense = fetch_latest_expense(user_id)
     if not expense:
@@ -163,37 +129,18 @@ async def get_latest_expense(
         }
     }
 
-    from backend.expense import fetch_latest_expense
-    if not user_id:
-        return {"expense": None, "error": "user_id parameter is required"}
-    
-    try:
-        expense = fetch_latest_expense(user_id)
-        if expense:
-            return {
-                "expense": {
-                    "id": expense[0],
-                    "user_id": expense[1],
-                    "date": expense[2],
-                    "category": expense[3],
-                    "amount": expense[4],
-                    "description": expense[5] if len(expense) > 5 else None
-                }
-            }
-        return {"expense": None}
-    except Exception as e:
-        return {"expense": None, "error": str(e)}
 
-# Get category summary
+# ==============================
+# ANALYTICS – CATEGORY
+# ==============================
 @app.get("/analytics/category-breakdown")
-async def get_category_summary(
+async def category_breakdown(
+    user_id: str = Query(...),
     start_date: str = Query(None),
-    end_date: str = Query(None),
-    current_user: dict = Depends(get_current_user)
-    ):
+    end_date: str = Query(None)
+):
     from backend.expense import fetch_category_summary
 
-    user_id = current_user["id"]
     summary = fetch_category_summary(user_id, start_date, end_date)
 
     return {
@@ -204,16 +151,17 @@ async def get_category_summary(
     }
 
 
-# Get daily spending data
+# ==============================
+# DAILY SPENDING
+# ==============================
 @app.get("/expenses/daily-spending")
-async def get_daily_spending(
+async def daily_spending(
+    user_id: str,
     start_date: str = Query(None),
-    end_date: str = Query(None),
-    current_user: dict = Depends(get_current_user)
-    ):
+    end_date: str = Query(None)
+):
     from backend.expense import fetch_daily_spending
 
-    user_id = current_user["id"]
     data = fetch_daily_spending(user_id, start_date, end_date)
 
     return {
@@ -223,16 +171,18 @@ async def get_daily_spending(
         ]
     }
 
-# Get monthly spending data
+
+# ==============================
+# MONTHLY SPENDING
+# ==============================
 @app.get("/expenses/monthly-spending")
-async def get_monthly_spending(
+async def monthly_spending(
+    user_id: str,
     start_date: str = Query(None),
-    end_date: str = Query(None),
-    current_user: dict = Depends(get_current_user)
-    ):
+    end_date: str = Query(None)
+):
     from backend.expense import fetch_monthly_spending
 
-    user_id = current_user["id"]
     data = fetch_monthly_spending(user_id, start_date, end_date)
 
     return {
@@ -242,21 +192,39 @@ async def get_monthly_spending(
         ]
     }
 
-# ==============================
-# Visualization Endpoints
-# ==============================
+class ExpenseUpdate(BaseModel):
+    user_id: str
+    date: str
+    category: str
+    amount: float
+    description: Optional[str] = None
 
-# @app.get("/visuals/daily_spending/{user_id}")
-# async def get_daily_spending_visual(user_id: int):
-#     from backend.expense import fetch_daily_spending
-#     from backend.visuals import plot_daily_spending
-#     # Fetch data
-#     data = fetch_daily_spending(user_id)
-#     dates = [row[0] for row in data]
-#     amounts = [row[1] for row in data]
-#     # Generate plot
-#     img = plot_daily_spending(dates, amounts)
-#     # # Save to a temporary file and return the path
-#     # temp_path = f"temp_daily_spending_{user_id}.png"
-#     # img.save(temp_path)
-#     return img
+
+@app.put("/expenses/{expense_id}")
+async def update_expense(
+    expense_id: int,
+    data: ExpenseUpdate
+):
+    from backend.expense import update_expense_by_id
+
+    update_expense_by_id(
+        expense_id=expense_id,
+        user_id=data.user_id,
+        date=data.date,
+        category=data.category,
+        amount=data.amount,
+        description=data.description
+    )
+
+    return {"message": "Expense updated successfully"}
+
+
+@app.delete("/expenses/{expense_id}")
+async def delete_expense(
+    expense_id: int,
+    user_id: str = Query(...)
+):
+    from backend.expense import delete_expense_by_id
+
+    delete_expense_by_id(expense_id, user_id)
+    return {"message": "Expense deleted successfully"}
